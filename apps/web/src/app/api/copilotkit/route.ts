@@ -11,7 +11,10 @@ import { graph } from "@repo/agent";
 // 1. You can use any service adapter here for multi-agent support. We use
 //    the empty adapter since we're only using one agent.
 const serviceAdapter = new LangChainAdapter({
-  chain: graph as any,
+  chainFn: async ({ messages, threadId }) => {
+    const result = await graph.invoke({ messages: messages as any }, { configurable: { thread_id: threadId } });
+    return result.messages[result.messages.length - 1] as any;
+  },
 });
 
 // 2. Create the CopilotRuntime instance and utilize the LangGraph AG-UI
