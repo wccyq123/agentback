@@ -7,7 +7,6 @@ import { useState } from "react";
 export default function CopilotKitPage() {
   const [themeColor, setThemeColor] = useState("#6366f1");
 
-  // 🪁 Frontend Actions: https://docs.copilotkit.ai/guides/frontend-actions
   useCopilotAction({
     name: "setThemeColor",
     description: "Set the theme color of the page.",
@@ -17,6 +16,7 @@ export default function CopilotKitPage() {
       required: true,
     }],
     handler({ themeColor }) {
+      console.log(themeColor);
       setThemeColor(themeColor);
     },
   });
@@ -43,7 +43,7 @@ type AgentState = {
 
 function YourMainContent({ themeColor }: { themeColor: string }) {
   // 🪁 Shared State: https://docs.copilotkit.ai/coagents/shared-state
-  const {state, setState} = useCoAgent<AgentState>({
+  const { state, setState } = useCoAgent<AgentState>({
     name: "starterAgent",
     initialState: {
       proverbs: [
@@ -52,7 +52,6 @@ function YourMainContent({ themeColor }: { themeColor: string }) {
     },
   })
 
-  // 🪁 Frontend Actions: https://docs.copilotkit.ai/coagents/frontend-actions
   useCopilotAction({
     name: "addProverb",
     description: "Add a proverb to the list.",
@@ -78,9 +77,54 @@ function YourMainContent({ themeColor }: { themeColor: string }) {
       { name: "location", type: "string", required: true },
     ],
     render: ({ args }) => {
-      console.log(args);
-      
       return <WeatherCard location={args.location} themeColor={themeColor} />
+    },
+  });
+
+  useCopilotAction({
+    name: "getOperationAdvice",
+    description: "Get the operation advice for a given query.",
+    available: "disabled",
+    parameters: [
+      { name: "query", type: "string", required: true },
+    ],
+    render: ({ status, args, result }) => {
+      console.log(status, args, result);
+      
+      if (status !== "complete" || !result) {
+        return (
+          <div className="p-4 bg-gray-100 rounded-lg animate-pulse text-gray-500 text-sm">
+             🔍 Searching knowledge base for "{args.query}"...
+          </div>
+        );
+      }
+
+      let docs: any[] = [];
+      try {
+        const parsed = typeof result === "string" ? JSON.parse(result) : result;
+        docs = parsed.docs || [];
+      } catch (e) {
+        console.error("Failed to parse result:", e);
+      }
+      const sources = Array.from(new Set(docs.map((doc: any) => doc.metadata?.source || "").filter(Boolean)));
+      console.log(sources);
+      return (
+        <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-60 overflow-y-auto">
+           <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
+             📚 发现 {sources.length} 个相关文档
+           </h3>
+           {sources.map((source: any, i: number) => (
+             <div key={i} className="text-sm bg-white p-3 rounded border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="font-medium text-blue-600 mb-1 text-xs break-all">
+                  {source.split('/').pop() || "Unknown Source"}
+                </div>
+                <div className="text-gray-600 line-clamp-3 text-xs font-mono bg-gray-50 p-1 rounded" style={{height: "70px"}}>
+                  文档存储于：{source || ""}
+                </div>
+             </div>
+           ))}
+        </div>
+      );
     },
   });
 
@@ -136,40 +180,40 @@ function SunIcon() {
 function WeatherCard({ location, themeColor }: { location?: string, themeColor: string }) {
   return (
     <div
-    style={{ backgroundColor: themeColor }}
-    className="rounded-xl shadow-xl mt-6 mb-4 max-w-md w-full"
-  >
-    <div className="bg-white/20 p-4 w-full">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-bold text-white capitalize">{location}</h3>
-          <p className="text-white">Current Weather</p>
+      style={{ backgroundColor: themeColor }}
+      className="rounded-xl shadow-xl mt-6 mb-4 max-w-md w-full"
+    >
+      <div className="bg-white/20 p-4 w-full">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-white capitalize">{location}</h3>
+            <p className="text-white">Current Weather</p>
+          </div>
+          <SunIcon />
         </div>
-        <SunIcon />
-      </div>
 
-      <div className="mt-4 flex items-end justify-between">
-        <div className="text-3xl font-bold text-white">70°</div>
-        <div className="text-sm text-white">Clear skies</div>
-      </div>
+        <div className="mt-4 flex items-end justify-between">
+          <div className="text-3xl font-bold text-white">70°</div>
+          <div className="text-sm text-white">Clear skies</div>
+        </div>
 
-      <div className="mt-4 pt-4 border-t border-white">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <p className="text-white text-xs">Humidity</p>
-            <p className="text-white font-medium">45%</p>
-          </div>
-          <div>
-            <p className="text-white text-xs">Wind</p>
-            <p className="text-white font-medium">5 mph</p>
-          </div>
-          <div>
-            <p className="text-white text-xs">Feels Like</p>
-            <p className="text-white font-medium">72°</p>
+        <div className="mt-4 pt-4 border-t border-white">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-white text-xs">Humidity</p>
+              <p className="text-white font-medium">45%</p>
+            </div>
+            <div>
+              <p className="text-white text-xs">Wind</p>
+              <p className="text-white font-medium">5 mph</p>
+            </div>
+            <div>
+              <p className="text-white text-xs">Feels Like</p>
+              <p className="text-white font-medium">72°</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
   );
 }
